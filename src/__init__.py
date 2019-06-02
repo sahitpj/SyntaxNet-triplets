@@ -1,0 +1,1 @@
+from .hpatterns import HearstPatterns
