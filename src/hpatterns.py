@@ -23,6 +23,11 @@ class HearstPatterns(object):
             ('(NP_\\w+ (, )?especially (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
             (r'NP_(\w+).*born.*on.* (\d+)? (\w+) (\d+)? ', 'last', 'bornOn', 4),
             (r'NP_(\w+).*(died|passed away).*on.* (\d+)? (\w+) (\d+)? ', 'last', 'diedOn', 4),
+            (r'NP_(\w+).*?(born|developed|made).*?in.*?NP_(\w+)', 'last', 'madeIn', 3),
+            (r'NP_(\w+).*?(present|found).*?in.*?NP_(\w+)', 'last', 'foundIn', 3),
+            (r'NP_(\w+).*?(member).*?of.*?NP_(\w+)', 'last', 'memberOf', 3),
+            (r'NP_(\w+).*?(developed|made).*?by.*?NP_(\w+)', 'last', 'madeBy', 3),
+            (r'NP_(\w+).*?(composed).*?of.*?NP_(\w+)', 'last', 'composedOf', 3),
         ]
 
         if extended:
@@ -103,48 +108,43 @@ class HearstPatterns(object):
     def find_hearstpatterns(self, filepath_to_conll):
 
         data_file = open(filepath_to_conll, "r", encoding="utf-8")
-        tokenlist = parse_single(data_file)
+        tokenList = parse_single(data_file)
         sentence_tokenList = tokenList[0]
         hearst_patterns = []
         # np_tagged_sentences = self.chunk(rawtext)
         np_tagged_sentences = sentence_tokenList.get_noun_chunks()
-
-        for sentence in np_tagged_sentences:
+        # for sentence in np_tagged_sentences:
             # two or more NPs next to each other should be merged into a single NP, it's a chunk error
 
-            for (hearst_pattern, parser, hearst_type, process_type) in self.__hearst_patterns:
-                matches = re.search(hearst_pattern, sentence)
-                if matches:
-                    print(sentence, "sentence", hearst_pattern, "hearst pattern")
-                    match_str = matches.group(0)
+        for (hearst_pattern, parser, hearst_type, process_type) in self.__hearst_patterns:
+            matches = re.search(hearst_pattern, np_tagged_sentences)
+            if matches:
+                match_str = matches.group(0)
 
-                    if process_type == 0:
-                        nps = [a for a in match_str.split() if a.startswith("NP_")]
+                if process_type == 0:
+                    nps = [a for a in match_str.split() if a.startswith("NP_")]
 
-                        if parser == "first":
-                            general = nps[0]
-                            specifics = nps[1:]
-                        else:
-                            general = nps[-1]
-                            specifics = nps[:-1]
-                            print(str(general))
-                            print(str(nps))
-
-                        for i in range(len(specifics)):
-                            #print("%s, %s %s" % (specifics[i], general, hearst_type))
-                            hearst_patterns.append((self.clean_hyponym_term(specifics[i]), self.clean_hyponym_term(general), hearst_type))
-
+                    if parser == "first":
+                        general = nps[0]
+                        specifics = nps[1:]
                     else:
-                        if parser == "first":
-                            general = matches.group(1)
-                            specifics = ' '.join([matches.group(i) for i in range(2,process_type+1)])
-                        else:
-                            general = matches.group(process_type)
-                            specifics = ' '.join([matches.group(i) for i in range(1,process_type)])
+                        general = nps[-1]
+                        specifics = nps[:-1]
 
-                        for i in range(len(specifics)):
-                            #print("%s, %s %s" % (specifics[i], general, hearst_type))
-                            hearst_patterns.append((self.clean_hyponym_term(specifics[i]), self.clean_hyponym_term(general), hearst_type))
+                    for i in range(len(specifics)):
+                        #print("%s, %s %s" % (specifics[i], general, hearst_type))
+                        hearst_patterns.append((self.clean_hyponym_term(specifics[i]), self.clean_hyponym_term(general), hearst_type))
+
+                else:
+                    if parser == "first":
+                        general = matches.group(1)
+                        specifics = [matches.group(i) for i in range(2,process_type+1)]
+                    else:
+                        general = matches.group(process_type)
+                        specifics = [matches.group(i) for i in range(1,process_type)]
+
+                    #print("%s, %s %s" % (specifics[i], general, hearst_type))
+                    hearst_patterns.append((specifics, general, hearst_type))
 
 
 
