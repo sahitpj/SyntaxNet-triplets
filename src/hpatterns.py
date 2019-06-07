@@ -26,15 +26,19 @@ class HearstPatterns(object):
             (r'NP_(\w+).*?(born|developed|made).*?in.*?NP_(\w+)', 'last', 'madeIn', 3),
             (r'NP_(\w+).*?(present|found).*?in.*?NP_(\w+)', 'last', 'foundIn', 3),
             (r'NP_(\w+).*?(member).*?of.*?NP_(\w+)', 'last', 'memberOf', 3),
-            (r'NP_(\w+).*?(developed|made).*?by.*?NP_(\w+)', 'last', 'madeBy', 3),
+            (r'NP_(\w+).*?(developed|made|published).*?by.*?NP_(\w+)', 'last', 'madeBy', 3),
             (r'NP_(\w+).*?(composed).*?of.*?NP_(\w+)', 'last', 'composedOf', 3),
+            (r'NP_(\w+).*?also known as.*?NP_(\w+)', 'last', 'also known as', 2),
+            (r'NP_(\w+).*?located.*?(in|on).*?NP_(\w+)', 'last', 'locatedIn|On', 3),
+            (r'NP_(\w+).*?is a.*?NP_(\w+)', 'first', 'attribute', 2),
+            (r'NP_(\w+).*?(comparable|related) to.*?NP_(\w+)', 'last', 'comparable to', 3),
         ]
 
         if extended:
             self.__hearst_patterns.extend([
                 ('((NP_\\w+ ?(, )?)+(and |or )?any other NP_\\w+)', 'last'),
                 ('((NP_\\w+ ?(, )?)+(and |or )?some other NP_\\w+)', 'last'),
-                ('((NP_\\w+ ?(, )?)+(and |or )?be a NP_\\w+)', 'last'),
+                ('((NP_\\w+ ?(, )?)+(and |or )?be a NP_\\w+)', 'last'), 
                 ('(NP_\\w+ (, )?like (NP_\\w+ ? (, )?(and |or )?)+)', 'first'),
                 ('such (NP_\\w+ (, )?as (NP_\\w+ ? (, )?(and |or )?)+)', 'first'),
                 ('((NP_\\w+ ?(, )?)+(and |or )?like other NP_\\w+)', 'last'),
