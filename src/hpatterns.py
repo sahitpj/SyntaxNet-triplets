@@ -8,7 +8,7 @@ from GSoC2019.conllu.conllu import parse_single, TokenList
 
 class HearstPatterns(object):
 
-    def __init__(self, extended = False):
+    def __init__(self, extended = False, greedy = False, same_sentence = False, semi = False):
         self.__adj_stopwords = ['able', 'available', 'brief', 'certain', 'different', 'due', 'enough', 'especially','few', 'fifth', 'former', 'his', 'howbeit', 'immediate', 'important', 'inc', 'its', 'last', 'latter', 'least', 'less', 'likely', 'little', 'many', 'ml', 'more', 'most', 'much', 'my', 'necessary', 'new', 'next', 'non', 'old', 'other', 'our', 'ours', 'own', 'particular', 'past', 'possible', 'present', 'proud', 'recent', 'same', 'several', 'significant', 'similar', 'such', 'sup', 'sure']
 
         # now define the Hearst patterns
@@ -21,17 +21,116 @@ class HearstPatterns(object):
             ('((NP_\\w+ ?(, )?)+(and |or )?other NP_\\w+)', 'last', 'typeOf', 0),
             ('(NP_\\w+ (, )?include (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
             ('(NP_\\w+ (, )?especially (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
-            (r'NP_(\w+).*born.*on.* (\d+)? (\w+) (\d+)? ', 'last', 'bornOn', 4),
-            (r'NP_(\w+).*(died|passed away).*on.* (\d+)? (\w+) (\d+)? ', 'last', 'diedOn', 4),
-            (r'NP_(\w+).*?(born|developed|made).*?in.*?NP_(\w+)', 'last', 'madeIn', 3),
+            (r'NP_(\w+).*?born.*on.* CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'bornOn', 4),
+            (r'NP_(\w+).*?(died|passed away).*?on.*?CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'diedOn', 4),
+            (r'NP_(\w+).*?(born|developed|made|established|published).*?(in|at).*?CD_(\w+)', 'last', 'madeIn', 4),
             (r'NP_(\w+).*?(present|found).*?in.*?NP_(\w+)', 'last', 'foundIn', 3),
             (r'NP_(\w+).*?(member).*?of.*?NP_(\w+)', 'last', 'memberOf', 3),
-            (r'NP_(\w+).*?(developed|made|published).*?by.*?NP_(\w+)', 'last', 'madeBy', 3),
+            (r'NP_(\w+).*?(developed|made|published|established).*?by.*?NP_(\w+)', 'last', 'madeBy', 3),
             (r'NP_(\w+).*?(composed).*?of.*?NP_(\w+)', 'last', 'composedOf', 3),
             (r'NP_(\w+).*?also known as.*?NP_(\w+)', 'last', 'also known as', 2),
             (r'NP_(\w+).*?located.*?(in|on).*?NP_(\w+)', 'last', 'locatedIn|On', 3),
-            (r'NP_(\w+).*?is a.*?NP_(\w+)', 'first', 'attribute', 2),
+            (r'NP_(\w+).*?(was|is) a.*?NP_(\w+)', 'first', 'attribute', 3),
             (r'NP_(\w+).*?(comparable|related) to.*?NP_(\w+)', 'last', 'comparable to', 3),
+            ('(NP_\\w+ (, )?made of (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'madeOf_multiple', 0),
+            ('(NP_\\w+ (, )?(was|is) a (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'attribute|profession_multiple', 0),
+            (r'NP_(\w+).*?(was|is).*?published.*?(in|on).*?CD_(\w+)', 'first', 'publishedIn', 3),
+            (r'NP_(\w+).*?represent.*?NP_(\w+)', 'first', 'representedBy', 2),
+            (r'NP_(\w+).*?used.*?(by|in|as).*?NP_(\w+)', 'first', 'used_', 3),
+            (r'NP_(\w+).*?made.*?of.*?NP_(\w+)', 'first', 'madeOf', 2),
+            (r'NP_(\w+).*?form.*?of.*?NP_(\w+)', 'first', 'formOf', 2),
+            (r'NP_(\w+).*?(leader|ruler|king|head).*?of.*?NP_(\w+)', 'first', 'leaderOf', 3),
+            (r'NP_(\w+).*?famous.*?for.*?NP_(\w+)', 'first', 'famousFor', 2),
+            ('(NP_\\w+ (, )?famous for (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'FamousFor_multiple', 0),
+        ]
+
+        self.__hearst_patterns_greedy = [
+            ('(NP_\\w+ (, )?such as (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('(such NP_\\w+ (, )?as (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('((NP_\\w+ ?(, )?)+(and |or )?other NP_\\w+)', 'last', 'typeOf', 0),
+            ('(NP_\\w+ (, )?include (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('(NP_\\w+ (, )?especially (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            (r'.*NP_(\w+).*?born.*on.* CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'bornOn', 4),
+            (r'.*NP_(\w+).*?(died|passed away).*?on.*?CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'diedOn', 4),
+            (r'.*NP_(\w+).*?(born|developed|made|established|published).*?(in|at).*?CD_(\w+)', 'last', 'madeIn', 4),
+            (r'.*NP_(\w+).*?(present|found).*?in.*?NP_(\w+)', 'last', 'foundIn', 3),
+            (r'.*NP_(\w+).*?(member).*?of.*?NP_(\w+)', 'last', 'memberOf', 3),
+            (r'.*NP_(\w+).*?(developed|made|published|established).*?by.*?NP_(\w+)', 'last', 'madeBy', 3),
+            (r'.*NP_(\w+).*?(composed).*?of.*?NP_(\w+)', 'last', 'composedOf', 3),
+            (r'.*NP_(\w+).*?also known as.*?NP_(\w+)', 'last', 'also known as', 2),
+            (r'.*NP_(\w+).*?located.*?(in|on).*?NP_(\w+)', 'last', 'locatedIn|On', 3),
+            (r'.*NP_(\w+).*?(was|is) a.*?NP_(\w+)', 'first', 'attribute', 3),
+            (r'.*NP_(\w+).*?(comparable|related) to.*?NP_(\w+)', 'last', 'comparable to', 3),
+            ('(NP_\\w+ (, )?made of (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'madeOf_multiple', 0),
+            ('(NP_\\w+ (, )?(was|is) a (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'attribute|profession_multiple', 0),
+            (r'.*NP_(\w+) (was|is).*?published.*?(in|on).*?CD_(\w+)', 'first', 'publishedIn', 3),
+            (r'.*NP_(\w+).*?represent.*?NP_(\w+)', 'first', 'representedBy', 2),
+            (r'.*NP_(\w+).*?used.*?(by|in|as).*?NP_(\w+)', 'first', 'used_', 3),
+            (r'.*NP_(\w+).*?made.*?of.*?NP_(\w+)', 'first', 'madeOf', 2),
+            (r'.*NP_(\w+).*?form.*?of.*?NP_(\w+)', 'first', 'formOf', 2),
+            (r'.*NP_(\w+).*?(leader|ruler|king|head).*?of.*?NP_(\w+)', 'first', 'leaderOf', 3),
+            (r'.*NP_(\w+).*?famous.*?for.*?NP_(\w+)', 'first', 'famousFor', 2),
+            ('(NP_\\w+ (, )?famous for (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'FamousFor_multiple', 0),
+        ]
+
+        self.__hearst_patterns_semigreedy = [
+            ('(NP_\\w+ (, )?such as (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('(such NP_\\w+ (, )?as (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('((NP_\\w+ ?(, )?)+(and |or )?other NP_\\w+)', 'last', 'typeOf', 0),
+            ('(NP_\\w+ (, )?include (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('(NP_\\w+ (, )?especially (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            (r'.*?NP_(\w+).*?born.*on.* CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'bornOn', 4),
+            (r'.*?NP_(\w+).*?(died|passed away).*?on.*?CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'diedOn', 4),
+            (r'.*?NP_(\w+).*?(born|developed|made|established|published).*?(in|at).*?CD_(\w+)', 'last', 'madeIn', 4),
+            (r'.*?NP_(\w+).*?(present|found).*?in.*?NP_(\w+)', 'last', 'foundIn', 3),
+            (r'.*?NP_(\w+).*?(member).*?of.*?NP_(\w+)', 'last', 'memberOf', 3),
+            (r'.*?NP_(\w+).*?(developed|made|published|established).*?by.*?NP_(\w+)', 'last', 'madeBy', 3),
+            (r'.*?NP_(\w+).*?(composed).*?of.*?NP_(\w+)', 'last', 'composedOf', 3),
+            (r'.*?NP_(\w+).*?also known as.*?NP_(\w+)', 'last', 'also known as', 2),
+            (r'.*?NP_(\w+).*?located.*?(in|on).*?NP_(\w+)', 'last', 'locatedIn|On', 3),
+            (r'.*?NP_(\w+).*?(was|is) a.*?NP_(\w+)', 'first', 'attribute', 3),
+            (r'.*?NP_(\w+).*?(comparable|related) to.*?NP_(\w+)', 'last', 'comparable to', 3),
+            ('(NP_\\w+ (, )?made of (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'madeOf_multiple', 0),
+            ('(NP_\\w+ (, )?(was|is) a (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'attribute|profession_multiple', 0),
+            (r'.*?NP_(\w+) (was|is).*?published.*?(in|on).*?CD_(\w+)', 'first', 'publishedIn', 3),
+            (r'.*?NP_(\w+).*?represent.*?NP_(\w+)', 'first', 'representedBy', 2),
+            (r'.*?NP_(\w+).*?used.*?(by|in|as).*?NP_(\w+)', 'first', 'used_', 3),
+            (r'.*?NP_(\w+).*?made.*?of.*?NP_(\w+)', 'first', 'madeOf', 2),
+            (r'.*?NP_(\w+).*?form.*?of.*?NP_(\w+)', 'first', 'formOf', 2),
+            (r'.*?NP_(\w+).*?(leader|ruler|king|head).*?of.*?NP_(\w+)', 'first', 'leaderOf', 3),
+            (r'.*?NP_(\w+).*?famous.*?for.*?NP_(\w+)', 'first', 'famousFor', 2),
+            ('(NP_\\w+ (, )?famous for (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'FamousFor_multiple', 0),
+        ]
+
+
+        self.__hearst_patterns_ss = [
+            ('(NP_\\w+ (, )?such as (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('(such NP_\\w+ (, )?as (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('((NP_\\w+ ?(, )?)+(and |or )?other NP_\\w+)', 'last', 'typeOf', 0),
+            ('(NP_\\w+ (, )?include (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            ('(NP_\\w+ (, )?especially (NP_\\w+ ?(, )?(and |or )?)+)', 'first', 'typeOf', 0),
+            (r'NP_(\w+)[^.]*?born[^.]*on[^.]* CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'bornOn', 4),
+            (r'NP_(\w+)[^.]*?(died|passed away)[^.]*?on[^.]*?CD_(\d+)? (\w+) CD_(\d+)? ', 'last', 'diedOn', 4),
+            (r'NP_(\w+)[^.]*?(born|developed|made|established|published)[^.]*?(in|at)[^.]*?CD_(\w+)', 'last', 'madeIn', 4),
+            (r'NP_(\w+)[^.]*?(present|found)[^.]*?in[^.]*?NP_(\w+)', 'last', 'foundIn', 3),
+            (r'NP_(\w+)[^.]*?(member)[^.]*?of[^.]*?NP_(\w+)', 'last', 'memberOf', 3),
+            (r'NP_(\w+)[^.]*?(developed|made|published|established)[^.]*?by[^.]*?NP_(\w+)', 'last', 'madeBy', 3),
+            (r'NP_(\w+)[^.]*?(composed)[^.]*?of[^.]*?NP_(\w+)', 'last', 'composedOf', 3),
+            (r'NP_(\w+)[^.]*?also known as[^.]*?NP_(\w+)', 'last', 'also known as', 2),
+            (r'NP_(\w+)[^.]*?located[^.]*?(in|on)[^.]*?NP_(\w+)', 'last', 'locatedIn|On', 3),
+            (r'NP_(\w+)[^.]*?(was|is) a[^.]*?NP_(\w+)', 'first', 'attribute', 3),
+            (r'NP_(\w+)[^.]*?(comparable|related) to[^.]*?NP_(\w+)', 'last', 'comparable to', 3),
+            ('(NP_\\w+ (, )?made of (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'madeOf_multiple', 0),
+            ('(NP_\\w+ (, )?(was|is) a (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'attribute|profession_multiple', 0),
+            (r'NP_(\w+) (was|is)[^.]*?published[^.]*?(in|on)[^.]*?CD_(\w+)', 'first', 'publishedIn', 3),
+            (r'NP_(\w+)[^.]*?represent[^.]*?NP_(\w+)', 'first', 'representedBy', 2),
+            (r'NP_(\w+)[^.]*?used[^.]*?(by|in|as)[^.]*?NP_(\w+)', 'first', 'used_', 3),
+            (r'NP_(\w+)[^.]*?made[^.]*?of[^.]*?NP_(\w+)', 'first', 'madeOf', 2),
+            (r'NP_(\w+)[^.]*?form[^.]*?of[^.]*?NP_(\w+)', 'first', 'formOf', 2),
+            (r'NP_(\w+)[^.]*?(leader|ruler|king|head)[^.]*?of[^.]*?NP_(\w+)', 'first', 'leaderOf', 3),
+            (r'NP_(\w+)[^.]*?famous[^.]*?for[^.]*?NP_(\w+)', 'first', 'famousFor', 2),
+            ('(NP_\\w+ (, )?famous for (NP_\\w+ ? (, )?(and |or )?)+)', 'first', 'Famousfor_multiple', 0),
+            
         ]
 
         if extended:
@@ -79,6 +178,15 @@ class HearstPatterns(object):
             ])
 
         self.__spacy_nlp = spacy.load('en')
+
+        if greedy:
+            self.__hearst_patterns = self.__hearst_patterns_greedy
+
+        if same_sentence:
+            self.__hearst_patterns = self.__hearst_patterns_ss
+
+        if semi:
+            self.__hearst_patterns = self.__hearst_patterns_semigreedy
         
     def chunk(self, tokenList):
         doc = self.__spacy_nlp(rawtext)
@@ -109,14 +217,14 @@ class HearstPatterns(object):
         It takes as input the rawtext to process and returns a list of tuples (specific-term, general-term)
         where each tuple represents a hypernym pair.
     """
-    def find_hearstpatterns(self, filepath_to_conll):
+    def find_hearstpatterns(self, filepath_to_conll, subject):
 
         data_file = open(filepath_to_conll, "r", encoding="utf-8")
         tokenList = parse_single(data_file)
         sentence_tokenList = tokenList[0]
         hearst_patterns = []
         # np_tagged_sentences = self.chunk(rawtext)
-        np_tagged_sentences = sentence_tokenList.get_noun_chunks()
+        np_tagged_sentences = sentence_tokenList.get_noun_chunks(subject)
         # for sentence in np_tagged_sentences:
             # two or more NPs next to each other should be merged into a single NP, it's a chunk error
 
