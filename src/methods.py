@@ -47,8 +47,8 @@ class TripleExtraction(object):
     def find_subject(self, t): 
         for s in t.subtrees(lambda t: t.label() == 'NP'):
             for n in s.subtrees(lambda n: n.label().startswith('NN')):
-                # return (n[0], self.find_attrs(n))
-                return n[0]
+                return (n[0], self.find_attrs(n))
+                # return n[0]
                 
     def find_predicate(self, t):    
         v = None
@@ -56,20 +56,20 @@ class TripleExtraction(object):
         for s in t.subtrees(lambda t: t.label() == 'VP'):
             for n in s.subtrees(lambda n: n.label().startswith('VB')):
                 v = n
-            # return (v[0], self.find_attrs(v))
-            return v[0]
+            return (v[0], self.find_attrs(v))
+            # return v[0]
         
     def find_object(self,t):    
         for s in t.subtrees(lambda t: t.label() == 'VP'):
             for n in s.subtrees(lambda n: n.label() in ['NP', 'PP', 'ADJP']):
                 if n.label() in ['NP', 'PP']:
                     for c in n.subtrees(lambda c: c.label().startswith('NN')):
-                        # return (c[0], self.find_attrs(c))
-                        return c[0]
+                        return (c[0], self.find_attrs(c))
+                        # return c[0]
                 else:
                     for c in n.subtrees(lambda c: c.label().startswith('JJ')):
-                        # return (c[0], self.find_attrs(c))
-                        return c[0]
+                        return (c[0], self.find_attrs(c))
+                        # return c[0]
                     
     def find_attrs(self, node):
         attrs = []
@@ -116,7 +116,7 @@ class TripleExtraction(object):
 
     def treebank(self, sentence):
         tree = list(parser.raw_parse(sentence))[0]
-        triple = self.main(list(tree)[0])
+        triple = self.main(ParentedTree.convert(tree))
         return triple
 
 if __name__=="__main__" :
