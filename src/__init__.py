@@ -1,2 +1,3 @@
 from .hpatterns import HearstPatterns
-from .methods import TripleExtraction
+from .treegex import TripleExtraction
+from .deps import TripleExtraction_Deps
